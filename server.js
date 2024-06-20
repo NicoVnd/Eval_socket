@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
 
   socket.on('joinGame', ({ gameId, username }) => {
     const game = games[gameId];
-    if (game && game.players.length < 2 && !game.players.find(p => p.username === username)) {
+    if (game && game.players.length < 2 && !game.players.some(player => player.id === socket.id)) {
       game.players.push({ id: socket.id, username });
       socket.join(gameId);
       if (game.players.length === 2) {
@@ -68,7 +68,7 @@ io.on('connection', (socket) => {
         startRound(gameId);
       }
     } else {
-      socket.emit('error', 'Game is full, does not exist, or username is already taken.');
+      socket.emit('error', 'Game is full, does not exist, or you are already in the game.');
     }
   });
 
