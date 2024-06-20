@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
       round: 1
     };
     socket.join(gameId);
-    socket.emit('gameCreated', { gameId });
+    socket.emit('gameCreated', { gameId, username });
   });
 
   socket.on('joinGame', ({ gameId, username }) => {
@@ -63,7 +63,9 @@ io.on('connection', (socket) => {
     if (game && game.players.length < 2 && !game.players.some(player => player.id === socket.id)) {
       game.players.push({ id: socket.id, username });
       socket.join(gameId);
-      if (game.players.length === 2) {
+      if (game.players.length === 1) {
+        socket.emit('waitingForPlayer', { username });
+      } else if (game.players.length === 2) {
         io.to(gameId).emit('startGame', { players: game.players });
         startRound(gameId);
       }
@@ -107,7 +109,7 @@ io.on('connection', (socket) => {
 const startRound = (gameId) => {
   const game = games[gameId];
   if (game) {
-    io.to(gameId).emit('newRound', { round: game.round });
+    io.to(gameId).emit('newRound', { round: game.round, scores: game.scores });
   }
 };
 
