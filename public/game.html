@@ -1,0 +1,87 @@
+<!-- public/game.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pierre Papier Ciseaux Puit - Partie</title>
+</head>
+<body>
+  <h1>Pierre Papier Ciseaux Puit - Partie</h1>
+  <div id="game">
+    <input type="text" id="username" placeholder="Votre pseudo">
+    <button id="joinGame">Rejoindre la partie</button>
+  </div>
+  <div id="play" style="display:none;">
+    <h2 id="players"></h2>
+    <button class="choice" data-choice="pierre">Pierre</button>
+    <button class="choice" data-choice="papier">Papier</button>
+    <button class="choice" data-choice="ciseaux">Ciseaux</button>
+    <button class="choice" data-choice="puit">Puit</button>
+    <h3>Tour: <span id="round"></span></h3>
+  </div>
+  <div id="result" style="display:none;">
+    <h2 id="resultMessage"></h2>
+    <h3>Scores</h3>
+    <p id="scores"></p>
+  </div>
+  <div id="end" style="display:none;">
+    <h2>Fin de la partie</h2>
+    <p id="finalScores"></p>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const gameDiv = document.getElementById('game');
+    const playDiv = document.getElementById('play');
+    const resultDiv = document.getElementById('result');
+    const endDiv = document.getElementById('end');
+    const usernameInput = document.getElementById('username');
+    const gameId = window.location.pathname.split('/').pop();
+
+    document.getElementById('joinGame').addEventListener('click', () => {
+      const username = usernameInput.value;
+      if (username) {
+        socket.emit('joinGame', { gameId, username });
+      }
+    });
+
+    socket.on('startGame', ({ players }) => {
+      gameDiv.style.display = 'none';
+      playDiv.style.display = 'block';
+      document.getElementById('players').textContent = `Joueurs: ${players.map(p => p.username).join(' vs ')}`;
+    });
+
+    socket.on('newRound', ({ round }) => {
+      resultDiv.style.display = 'none';
+      playDiv.style.display = 'block';
+      document.getElementById('round').textContent = round;
+    });
+
+    document.querySelectorAll('.choice').forEach(button => {
+      button.addEventListener('click', () => {
+        const choice = button.getAttribute('data-choice');
+        socket.emit('makeChoice', { gameId, choice });
+      });
+    });
+
+    socket.on('gameResult', ({ result, choices, scores }) => {
+      playDiv.style.display = 'none';
+      resultDiv.style.display = 'block';
+      document.getElementById('resultMessage').textContent = `Résultat: ${result}. Choix: ${JSON.stringify(choices)}`;
+      document.getElementById('scores').textContent = `Scores - Joueur 1: ${scores.player1}, Joueur 2: ${scores.player2}`;
+    });
+
+    socket.on('endGame', ({ scores }) => {
+      playDiv.style.display = 'none';
+      resultDiv.style.display = 'none';
+      endDiv.style.display = 'block';
+      document.getElementById('finalScores').textContent = `Scores finaux - Joueur 1: ${scores.player1}, Joueur 2: ${scores.player2}`;
+    });
+
+    socket.on('error', (message) => {
+      alert(message);
+    });
+  </script>
+</body>
+</html>
